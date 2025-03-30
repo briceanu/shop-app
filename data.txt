@@ -1,0 +1,6 @@
+python3 -m venv shop_env
+source ./shop_env/bin/activate
+
+pip install 'fastAPI[standard]'
+
+pip freeze > requirements.txt
