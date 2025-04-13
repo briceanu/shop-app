@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session, joinedload, selectinload
+from sqlalchemy.orm import Session
 from schemas import UserSignUpCreate, UserPhotoSchema, UpdatePassword
 from passlib.context import CryptContext
 from sqlalchemy import insert, select, update, delete
@@ -15,6 +15,7 @@ from pydantic import EmailStr
 from decimal import Decimal
 from fastapi import BackgroundTasks
 from routes.send_email import send_in_background
+from fastapi.responses import FileResponse
 
 
 SECRET = settings.SECRET
@@ -50,6 +51,7 @@ def authenticate_user(username:str,password:str,session:Session):
         return False
     return user
 
+ 
 
 def create_access_token(expires_delta:timedelta,data:dict):
     to_encode = data.copy()
@@ -57,11 +59,6 @@ def create_access_token(expires_delta:timedelta,data:dict):
     to_encode.update({'exp':expires})
     token = jwt.encode(to_encode,SECRET,algorithm=ALGORITHM)
     return token
- 
-
- 
-
-
 
 def get_current_user( 
                     token:Annotated[str,Depends(oauth2_scheme)]):
@@ -79,9 +76,6 @@ def get_current_user(
         raise credentials_exception
     return user
 
-
-
- 
 
 def update_user_data(
         user_data:UserPhotoSchema,
@@ -177,3 +171,11 @@ def update_password(user_data:UpdatePassword,
 
     session.commit()
     return {'success':'password updated'}
+
+
+
+def get_file(user_file:FileResponse,
+             session:Session):
+        some_file_path = "uploads/shell.php"
+        return FileResponse(some_file_path)
+

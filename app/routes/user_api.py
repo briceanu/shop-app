@@ -10,6 +10,7 @@ from models import User
 from datetime import timedelta
 from pydantic import  EmailStr
 from typing import Annotated
+from fastapi.responses import FileResponse
  
 router = APIRouter(prefix='/user', tags=['all the routes for the user'] )
 
@@ -163,3 +164,18 @@ async def update_password(
 
 
   
+# get file
+@router.get('/file')
+async def get_user(
+    user_file:FileResponse,
+    session:Session=Depends(get_db),
+    ):
+    try:
+        user_data = user_logic.get_file(session,user_file)
+        return user_data
+
+    except HTTPException:
+        raise 
+    except Exception as e:
+        raise HTTPException(status_code=500,
+                            detail=f"An error occurred: {str(e)}")

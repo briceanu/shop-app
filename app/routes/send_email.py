@@ -31,10 +31,10 @@ async def send_in_background(
         body="On behalf of our team, we wish you a very nice day.",
         subtype=MessageType.plain
     )
-
+    
     fm = FastMail(conf)
     background_tasks.add_task(fm.send_message, message)  # Add email task to background
 
 
 
-
+ 

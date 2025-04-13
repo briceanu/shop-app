@@ -8,9 +8,9 @@ import re
 from typing import Annotated, List
 from decimal import Decimal
 from fastapi import UploadFile, HTTPException, status
-# import uuid
+from typing import List
 from uuid import UUID
-
+from datetime import datetime
 
 
 
@@ -116,7 +116,7 @@ class ProductSchemaCreate(BaseModel):
     product_title: str = Field(..., max_length=100)
     description: str
     price: PriceField
-
+    quantity:int=Field(gt=0)
     class Config:
         extra = 'forbid'
 
@@ -133,6 +133,12 @@ class ProductImageCreate(BaseModel):
     def validate_images(cls,value):
         # list of images
         allowed_extensions=['jpg','png','jepg']
+        if len(value) > 2:
+            raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Product can't have more than 2 images"
+                )
+
         for image in value:
             filename = image.filename.lower()
             parts = filename.split('.')
@@ -148,6 +154,43 @@ class ProductImageCreate(BaseModel):
             return value
         
 
-        
+
+class Products(BaseModel):
+    product_id:UUID
+    quantity: int
+
+    @field_validator('quantity')
+    def validate_quantity(cls,value):
+        if value < 1 :
+            raise ValueError('quantity can not be less than 1')
+        return value
+
+
+class OrderItemSchema(BaseModel):
+    products:List['Products']
+
 
  
+
+
+# ''''''''''''''''''''''''''''''
+
+class OrderItemResponse(BaseModel):
+    product_id: UUID
+    quantity: int
+    price_at_order_time: float
+    amount:float
+
+
+    class Config:
+        from_attributes = True
+
+class OrderResponse(BaseModel):
+    order_id: UUID
+    user_id: UUID
+    order_date: datetime
+    total_amount:float
+    order_items: List[OrderItemResponse]
+
+    class Config:
+        from_attributes = True
