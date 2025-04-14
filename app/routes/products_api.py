@@ -129,7 +129,7 @@ async def show_all_orders(
 
 # filtering the products
 
-@router.get('/{min_price}/{max_price}')
+@router.get('/')
 async def filter_products(min_price:float,max_price:float,
                           session:Session=Depends(get_db)):
     

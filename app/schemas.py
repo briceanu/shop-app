@@ -66,7 +66,7 @@ class UpdateUserBalance(BaseModel):
 class UserPhotoSchema(BaseModel):
     user_photo: UploadFile
 
-
+# validation against uploadfile vulnerabilities
     @field_validator('user_photo')
     @classmethod
     def validate_user_photo(cls, value):
@@ -108,6 +108,14 @@ class UpdatePassword(BaseModel):
         return values
 
 # schmea for product
+# function used to protect against xss
+def validate_xss(value):
+    forbidden_char = ['>','<',':']
+    forbid_char = ','.join(forbidden_char)
+    for char in value:
+        if char in forbidden_char:
+            raise ValueError(f'These characters are not allowed: {forbid_char}')
+    return value
 
 
 PriceField = Annotated[Decimal, Field(gt=0, max_digits=7, decimal_places=2)]
@@ -119,6 +127,18 @@ class ProductSchemaCreate(BaseModel):
     quantity:int=Field(gt=0)
     class Config:
         extra = 'forbid'
+
+    @field_validator('product_title')
+    @classmethod
+    def validate_product_title(cls,value):
+        return validate_xss(value)
+    
+    @field_validator('description')
+    @classmethod
+    def validate_description(cls,value):
+        return validate_xss(value)
+
+
 
 class ProductImageCreate(BaseModel):
     images: List[UploadFile] 

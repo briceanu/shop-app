@@ -54,6 +54,13 @@ def image_upload(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"No user with the username {user.username} found.",
         )
+    product = session.execute(select(Product).where(Product.product_id==data.product_id)).scalar()
+    if not product:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No product with the uuid {data.product_id} found.",
+        )
+
 
     # Create upload directory
     UPLOAD_DIR = "uploads"
@@ -98,7 +105,7 @@ def remove_product(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f'Product with ID {product_id} not found'
         )
-
+# check to see if the product belongs to the user
     if product.user_id != user_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
             detail="You don't have permission to delete this product")

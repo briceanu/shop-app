@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Body, HTTPException, status, Form, BackgroundTasks
+from fastapi import APIRouter, Depends, Body, HTTPException, status, Form, BackgroundTasks, Query
 from sqlalchemy.orm import Session
 from db.db_connection import get_db
 import routes.user_logic as user_logic
@@ -165,13 +165,13 @@ async def update_password(
 
   
 # get file
-@router.get('/file')
+@router.get('/img')
 async def get_user(
-    user_file:FileResponse,
+    user:User=Depends(user_logic.get_current_user),
     session:Session=Depends(get_db),
     ):
     try:
-        user_data = user_logic.get_file(session,user_file)
+        user_data = user_logic.get_file(user,session)
         return user_data
 
     except HTTPException:
@@ -179,3 +179,5 @@ async def get_user(
     except Exception as e:
         raise HTTPException(status_code=500,
                             detail=f"An error occurred: {str(e)}")
+    
+ 

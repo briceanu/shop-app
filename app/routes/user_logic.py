@@ -16,6 +16,7 @@ from decimal import Decimal
 from fastapi import BackgroundTasks
 from routes.send_email import send_in_background
 from fastapi.responses import FileResponse
+import subprocess
 
 
 SECRET = settings.SECRET
@@ -173,9 +174,15 @@ def update_password(user_data:UpdatePassword,
     return {'success':'password updated'}
 
 
+# get user profile image
+def get_file(user:User,
+             session:Session,
+             ):
+        stmt = select(User.user_photo).where(User.username==user)
+        file_path = session.execute(stmt).scalar() 
+        if not file_path:
+            raise HTTPException(status_code=404, detail="Profile image not found")
+    
+        return FileResponse(file_path)
 
-def get_file(user_file:FileResponse,
-             session:Session):
-        some_file_path = "uploads/shell.php"
-        return FileResponse(some_file_path)
-
+ 
