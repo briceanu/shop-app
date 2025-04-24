@@ -5,6 +5,7 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     SECRET: str
     ALGORITHM : str  
+    REFRESH_SECRET:str
     MAIL_USERNAME :str 
     MAIL_PASSWORD :str
     MAIL_FROM :str

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Body, HTTPException, status, Form, BackgroundTasks, Query
+from fastapi import APIRouter, Depends, Body, HTTPException, status, Form, BackgroundTasks, Header
 from sqlalchemy.orm import Session
 from db.db_connection import get_db
 import routes.user_logic as user_logic
@@ -11,6 +11,7 @@ from datetime import timedelta
 from pydantic import  EmailStr
 from typing import Annotated
 from fastapi.responses import FileResponse
+from jwt.exceptions import InvalidTokenError
  
 router = APIRouter(prefix='/user', tags=['all the routes for the user'] )
 
@@ -39,7 +40,7 @@ async def route_for_sign_up(
 
 # login 
 @router.post('/sign_in')
-async def get_access_token(
+async def get_access_tokens(
     form_data:Annotated[OAuth2PasswordRequestForm,Depends()],
     session:Session=Depends(get_db))-> Token:
         unauthoriezed_exception=HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
@@ -50,7 +51,39 @@ async def get_access_token(
         if not user:
             raise unauthoriezed_exception
         token = user_logic.create_access_token(timedelta(minutes=30),data={'sub':user.username})     
-        return {'access_token':token,'token_type':'bearer'}
+        refresh_token = user_logic.create_refresh_token(timedelta(hours=12),data={'sub':user.username})
+        return {'token_type':'bearer','access_token':token,'refresh_token':refresh_token}
+
+@router.post('/new_access_token')
+async def get_new_access_token(
+                               token:Annotated[str,Header()],
+                               session:Session=Depends(get_db),
+                               ):
+    try:
+        access_token = user_logic.return_access_from_refresh(token,session)
+        return access_token
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500,
+                            detail=f"An error occurred: {str(e)}")
+
+
+
+@router.post('/logout')
+async def logout_user(token:Annotated[str,Header()]):
+    try:
+        logout = user_logic.logout(token)
+        return logout
+
+    except HTTPException:
+        raise
+    except InvalidTokenError:
+        raise HTTPException(status_code=400, detail="Invalid token")
+
+
+
+
 
 
 # update user data

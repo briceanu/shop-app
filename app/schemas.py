@@ -56,7 +56,7 @@ class UserSignUpCreate(BaseModel):
 class Token(BaseModel):
     access_token:str
     token_type:str
-
+    refresh_token:str
 
 # the validation for the balance
 BalanceType = Annotated[Decimal, Field(gt=0, max_digits=7, decimal_places=2)]

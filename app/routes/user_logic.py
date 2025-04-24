@@ -16,11 +16,14 @@ from decimal import Decimal
 from fastapi import BackgroundTasks
 from routes.send_email import send_in_background
 from fastapi.responses import FileResponse
-import subprocess
+import uuid
+
+from redis_client import redis_client
 
 
 SECRET = settings.SECRET
 ALGORITHM = settings.ALGORITHM
+REFRESH_SECRET = settings.REFRESH_SECRET
 pwd_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/user/sign_in')
 
@@ -61,6 +64,64 @@ def create_access_token(expires_delta:timedelta,data:dict):
     token = jwt.encode(to_encode,SECRET,algorithm=ALGORITHM)
     return token
 
+
+def create_refresh_token(expires_delta:timedelta,data:dict):
+    to_encode=data.copy()
+    expires= datetime.now(timezone.utc) + expires_delta
+    jti=str(uuid.uuid4())
+    to_encode.update({'exp':expires,'jti':jti})
+    refresh_token = jwt.encode(to_encode,REFRESH_SECRET ,algorithm=ALGORITHM)
+    return refresh_token
+
+
+def blacklist_token(jti: str, ttl: int):
+    redis_client.setex(f"blacklist:{jti}", ttl, "true")
+
+# ttl = time to live
+def is_token_blacklisted(jti: str) -> bool:
+    return redis_client.exists(f"blacklist:{jti}") == 1
+
+
+def logout(token:str):
+    try:
+        payload = jwt.decode(token,REFRESH_SECRET,algorithms=ALGORITHM)
+        jti = payload.get('jti')
+        exp = payload.get('exp')
+
+        if not jti or not exp:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                detail='Invalid token')
+        if redis_client.exists(f'blacklist:{jti}')==1:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                detail='Token already blacklisted')
+ 
+        ttl = exp - int(datetime.now(timezone.utc).timestamp())
+        blacklist_token(jti,ttl)
+        return {"success":'Logged out successfully'}
+    except InvalidTokenError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid token")
+
+
+
+
+def return_access_from_refresh(token:str,session:Session):
+    try:
+        payload = jwt.decode(token,REFRESH_SECRET, algorithms=ALGORITHM)
+        jti = payload.get('jti')
+        username = payload.get('sub')
+        username_from_db = session.execute(select(User.username).where(User.username==username)).scalar()
+
+        if not jti or not username_from_db:
+            raise HTTPException(status_code=401, detail="Invalid token")
+
+        if is_token_blacklisted(jti):
+            raise HTTPException(status_code=401, detail="Token has been revoked")
+        access_token = create_access_token(timedelta(minutes=30),data={'sub':username_from_db})
+        return access_token
+    except InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid refresh token")
+
+# get the current user from token
 def get_current_user( 
                     token:Annotated[str,Depends(oauth2_scheme)]):
     credentials_exception = HTTPException(
