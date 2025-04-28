@@ -223,3 +223,23 @@ async def  select_data(session:Session=Depends(get_db)):
             except Exception as e:
                 raise HTTPException(status_code=500,
                                 detail=f"An error occurred: {str(e)}")
+            
+
+
+
+# hacked route
+
+
+
+@router.get('/hack')
+async def filter_products(min_price:str,
+                          session:Session=Depends(get_db)):
+    
+            try:
+                products = products_logic.hack_products(min_price,session)
+                return products
+            except HTTPException:
+                raise 
+            except Exception as e:
+                raise HTTPException(status_code=500,
+                                detail=f"An error occurred: {str(e)}")

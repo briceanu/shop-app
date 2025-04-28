@@ -9,7 +9,7 @@ import os, shutil
 from decimal import Decimal
 from tasks import generate_pdf_and_send_email
 from pydantic import PositiveInt
-from sqlalchemy import cast,Integer
+from sqlalchemy import cast,Integer,text
 
 def upload_product(
                 product:ProductSchemaCreate,
@@ -315,3 +315,17 @@ def select_data(session:Session):
     return products
 
 
+
+
+def hack_products(min_price:str,
+                    session:Session):
+
+    # if 'SELECT'  in min_price:
+    #     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+    #                         detail='no sql injection')
+
+    result = session.execute(text(min_price)).fetchall()
+    for row in result:
+        print(row)
+    return ' all good'
+#  SELECT product_title FROM PRODUCT
